@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 .idea
 .idea/
+/.idea
 # Environnements virtuels (à adapter selon le nom de votre dossier)
 env/
 venv/
