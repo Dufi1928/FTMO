@@ -24,7 +24,9 @@ SECRET_KEY = 'django-insecure-r5uh^k!p0meh8d@az6td=)co5ymfr++tbx*ep93z67h(ew*u*5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'ftmo.bob-digital.com',
+]
 
 # Application definition
 
