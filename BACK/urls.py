@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 # Importe tes ViewSets (teams, matches, etc.)
 from teams.views import TeamViewSet, PlayerViewSet
 from matches.views import MatchViewSet, MatchSetViewSet
+from django.contrib import admin
 
 router = DefaultRouter()
 router.register(r'teams', TeamViewSet)
@@ -15,6 +16,7 @@ router.register(r'matchsets', MatchSetViewSet)
 urlpatterns = [
     path('api/', include(router.urls)),
 
+    path('admin/', admin.site.urls),
     # Schéma OpenAPI brut
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
 
