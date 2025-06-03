@@ -1,0 +1,18 @@
+[0;1;31m×[0m gunicorn.service - gunicorn daemon for FTMO Django project
+     Loaded: loaded (]8;;file://vmi2502277/etc/systemd/system/gunicorn.service/etc/systemd/system/gunicorn.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;31mfailed[0m (Result: exit-code) since Tue 2025-04-29 14:02:15 CEST; 17s ago
+   Duration: 1.075s
+    Process: 1569948 ExecStart=/venv/bin/gunicorn BACK.wsgi:application --access-logfile - --workers 3 --bind unix:/var/www/sites/FTMO/back/gunicorn.sock [0;1;31m(code=exited, status=3)[0m
+   Main PID: 1569948 (code=exited, status=3)
+        CPU: 2.189s
+
+Apr 29 14:02:15 vmi2502277 gunicorn[1569951]: ImportError: cannot import name 'MatchSet' from 'teams.models' (/var/www/sites/FTMO/back/teams/models.py)
+Apr 29 14:02:15 vmi2502277 gunicorn[1569951]: [2025-04-29 12:02:15 +0000] [1569951] [INFO] Worker exiting (pid: 1569951)
+Apr 29 14:02:15 vmi2502277 gunicorn[1569948]: [2025-04-29 14:02:15 +0200] [1569948] [ERROR] Worker (pid:1569949) exited with code 3
+Apr 29 14:02:15 vmi2502277 gunicorn[1569948]: [2025-04-29 14:02:15 +0200] [1569948] [ERROR] Worker (pid:1569951) was sent SIGTERM!
+Apr 29 14:02:15 vmi2502277 gunicorn[1569948]: [2025-04-29 14:02:15 +0200] [1569948] [ERROR] Worker (pid:1569950) was sent SIGTERM!
+Apr 29 14:02:15 vmi2502277 gunicorn[1569948]: [2025-04-29 14:02:15 +0200] [1569948] [ERROR] Shutting down: Master
+Apr 29 14:02:15 vmi2502277 gunicorn[1569948]: [2025-04-29 14:02:15 +0200] [1569948] [ERROR] Reason: Worker failed to boot.
+Apr 29 14:02:15 vmi2502277 systemd[1]: [0;1;39m[0;1;31m[0;1;39mgunicorn.service: Main process exited, code=exited, status=3/NOTIMPLEMENTED[0m
+Apr 29 14:02:15 vmi2502277 systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mgunicorn.service: Failed with result 'exit-code'.[0m
+Apr 29 14:02:15 vmi2502277 systemd[1]: gunicorn.service: Consumed 2.189s CPU time.

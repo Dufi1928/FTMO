@@ -5,7 +5,7 @@
       <paths name="VPS_FTMO">
         <serverdata>
           <mappings>
-            <mapping deploy="/FTMO" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/FTMO/back" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

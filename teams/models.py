@@ -4,17 +4,20 @@ from django.db import models
 class Team(models.Model):
     club_name = models.CharField(max_length=100)
 
+    image = models.ImageField(          # ← image représentative
+        upload_to='teams/images/',      # sous-dossier de MEDIA_ROOT
+        blank=True,
+        null=True
+    )
+
     team_admin = models.ForeignKey(
         'accounts.User',
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         related_name='teams_managed'
     )
-
-    email = models.EmailField(blank=True, null=True)
-
-    updated_at = models.DateTimeField(auto_now=True)
+    email       = models.EmailField(blank=True, null=True)
+    updated_at  = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.club_name
