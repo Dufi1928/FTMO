@@ -39,6 +39,7 @@ class MatchSet(models.Model):
     )
 
     set_type = models.CharField(max_length=20)
+    match_identifier = models.CharField(max_length=10, blank=True, null=True)
 
     home_player = models.ForeignKey(
         'teams.Player',
@@ -55,7 +56,6 @@ class MatchSet(models.Model):
         related_name='away_sets'
     )
 
-    status = models.CharField(max_length=50, default='scheduled')
 
     home_points = models.PositiveSmallIntegerField(default=0)
     away_points = models.PositiveSmallIntegerField(default=0)

@@ -3,7 +3,9 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from rest_framework.routers import DefaultRouter
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework_simplejwt.views import TokenRefreshView
 
+from accounts.views import RegisterView, EmailTokenObtainPairView
 # Importe tes ViewSets (teams, matches, etc.)
 from teams.views import TeamViewSet, PlayerViewSet
 from matches.views import MatchViewSet, MatchSetViewSet
@@ -16,10 +18,11 @@ router.register(r'matches', MatchViewSet)
 router.register(r'matchsets', MatchSetViewSet)
 
 urlpatterns = [
+
+    path('api/register/', RegisterView.as_view(), name='register'),
+    path('api/token/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/', include(router.urls)),
-
-    path('api/auth/', include('auth.urls')),
-
     path('admin/', admin.site.urls),
     # Schéma OpenAPI brut
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
