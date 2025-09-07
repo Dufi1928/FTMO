@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 from datetime import timedelta
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -96,16 +97,25 @@ WSGI_APPLICATION = 'BACK.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ftmo',
-        'USER': 'ivan',
-        'PASSWORD': '040998Ih',
-        'HOST': '207.180.212.5',
-        'PORT': '5432',
+if os.environ.get("USE_SQLITE"):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'TEST': {'NAME': ':memory:'},
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('POSTGRES_DB', 'ftmo'),
+            'USER': os.environ.get('POSTGRES_USER', 'ivan'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', '040998Ih'),
+            'HOST': os.environ.get('POSTGRES_HOST', '207.180.212.5'),
+            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

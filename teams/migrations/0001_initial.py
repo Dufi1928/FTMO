@@ -3,6 +3,7 @@
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
+import tinymce.models
 
 
 class Migration(migrations.Migration):
@@ -19,7 +20,14 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('club_name', models.CharField(max_length=100)),
+                ('club_short_description', models.TextField(default='Description courte temporaire', max_length=100)),
+                ('club_description_paragraph_1', tinymce.models.HTMLField(default='Description courte temporaire')),
+                ('club_description_paragraph_2', tinymce.models.HTMLField(default='Description courte temporaire')),
+                ('latitude', models.DecimalField(blank=True, decimal_places=6, max_digits=9, null=True)),
+                ('longitude', models.DecimalField(blank=True, decimal_places=6, max_digits=9, null=True)),
+                ('altitude_m', models.DecimalField(blank=True, decimal_places=1, max_digits=7, null=True)),
                 ('image', models.ImageField(blank=True, null=True, upload_to='teams/images/')),
+                ('image_large', models.ImageField(blank=True, null=True, upload_to='teams/images/large/')),
                 ('email', models.EmailField(blank=True, max_length=254, null=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('team_admin', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='teams_managed', to=settings.AUTH_USER_MODEL)),
@@ -29,6 +37,7 @@ class Migration(migrations.Migration):
             name='Player',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('profile_image', models.ImageField(blank=True, null=True, upload_to='players/images/')),
                 ('first_name', models.CharField(max_length=100)),
                 ('last_name', models.CharField(max_length=100)),
                 ('civility', models.CharField(max_length=20)),

@@ -153,27 +153,53 @@ class StatsView(APIView):
 
         stats = {}
         match_sets = MatchSet.objects.prefetch_related("home_players", "away_players").all()
+        is_double = category.startswith("doubles")
         for ms in match_sets:
             if self._identify_category(ms.match_identifier) != category:
                 continue
-            for player in ms.home_players.all():
-                data = stats.setdefault(player.id, {"player": player, "points_scored": 0, "points_conceded": 0})
-                data["points_scored"] += ms.home_points
-                data["points_conceded"] += ms.away_points
-            for player in ms.away_players.all():
-                data = stats.setdefault(player.id, {"player": player, "points_scored": 0, "points_conceded": 0})
-                data["points_scored"] += ms.away_points
-                data["points_conceded"] += ms.home_points
+            if is_double:
+                home_players = sorted(ms.home_players.all(), key=lambda p: p.id)
+                away_players = sorted(ms.away_players.all(), key=lambda p: p.id)
+                if len(home_players) == 2:
+                    key = tuple(p.id for p in home_players)
+                    data = stats.setdefault(key, {"players": home_players, "points_scored": 0, "points_conceded": 0})
+                    data["points_scored"] += ms.home_points
+                    data["points_conceded"] += ms.away_points
+                if len(away_players) == 2:
+                    key = tuple(p.id for p in away_players)
+                    data = stats.setdefault(key, {"players": away_players, "points_scored": 0, "points_conceded": 0})
+                    data["points_scored"] += ms.away_points
+                    data["points_conceded"] += ms.home_points
+            else:
+                for player in ms.home_players.all():
+                    data = stats.setdefault(player.id, {"player": player, "points_scored": 0, "points_conceded": 0})
+                    data["points_scored"] += ms.home_points
+                    data["points_conceded"] += ms.away_points
+                for player in ms.away_players.all():
+                    data = stats.setdefault(player.id, {"player": player, "points_scored": 0, "points_conceded": 0})
+                    data["points_scored"] += ms.away_points
+                    data["points_conceded"] += ms.home_points
 
-        results = [
-            {
-                "player_id": pid,
-                "first_name": data["player"].first_name,
-                "last_name": data["player"].last_name,
-                "points_scored": data["points_scored"],
-                "points_conceded": data["points_conceded"],
-            }
-            for pid, data in stats.items()
-        ]
+        if is_double:
+            results = [
+                {
+                    "player_ids": list(key),
+                    "names": " / ".join(f"{p.first_name} {p.last_name}" for p in data["players"]),
+                    "points_scored": data["points_scored"],
+                    "points_conceded": data["points_conceded"],
+                }
+                for key, data in stats.items()
+            ]
+        else:
+            results = [
+                {
+                    "player_id": pid,
+                    "first_name": data["player"].first_name,
+                    "last_name": data["player"].last_name,
+                    "points_scored": data["points_scored"],
+                    "points_conceded": data["points_conceded"],
+                }
+                for pid, data in stats.items()
+            ]
 
         return Response({"category": category, "results": results})
