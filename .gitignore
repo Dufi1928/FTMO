@@ -1,0 +1,58 @@
+# Fichiers et dossiers Python générés automatiquement
+__pycache__/
+*.py[cod]
+*$py.class
+.idea
+# Environnements virtuels (à adapter selon le nom de votre dossier)
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Fichiers de logs
+*.log
+
+# Base de données SQLite (si vous l'utilisez)
+db.sqlite3
+
+# Fichiers de configuration locaux ou secrets (exemple : paramètres spécifiques à votre environnement)
+local_settings.py
+
+# Répertoire media (upload d'images, documents, etc.) – à versionner selon vos besoins
+media/
+
+# Fichiers de cache
+.cache/
+
+# Fichiers de tests et couverture de code
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Fichiers de packaging et distributions
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Fichiers générés par PyInstaller
+*.manifest
+*.spec
+
+# Fichiers de traduction compilés
+*.mo
+
+# Fichiers et dossiers d'IDE et éditeurs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Fichiers système
+.DS_Store
+Thumbs.db
