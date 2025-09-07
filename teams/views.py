@@ -4,7 +4,9 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
+from datetime import date
+from matches.models import MatchSet
 
 from .models import Team, Player, Schedule, AudienceCategory
 from .serializers import TeamSerializer, PlayerSerializer, ScheduleSerializer,AudienceCategorySerializer
@@ -97,6 +99,73 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    @action(detail=True, methods=['get'])
+    def stats(self, request, pk=None):
+        player = self.get_object()
+
+        categories = [
+            'FEMININES', 'MASCULINS', 'DOUBLES MASCULINS',
+            'DOUBLES MASCULIN-FEMININ', 'JEUNES',
+            'DOUBLES MASCULIN-JEUNE', 'DOUBLES FEMININ-JEUNE',
+        ]
+        stats = {cat: {'won': 0, 'lost': 0} for cat in categories}
+
+        sets_qs = MatchSet.objects.filter(
+            Q(home_players=player) | Q(away_players=player)
+        ).prefetch_related('home_players', 'away_players')
+
+        for match_set in sets_qs:
+            category = self._determine_category(match_set, player)
+            if not category:
+                continue
+            won = (
+                (match_set.home_points > match_set.away_points and player in match_set.home_players.all())
+                or (match_set.away_points > match_set.home_points and player in match_set.away_players.all())
+            )
+            if won:
+                stats[category]['won'] += 1
+            else:
+                stats[category]['lost'] += 1
+
+        return Response({'player': player.id, 'stats': stats})
+
+    def _determine_category(self, match_set, player):
+        def is_female(p):
+            civ = (p.civility or '').lower()
+            return civ in ['mme', 'mlle', 'madame', 'mademoiselle']
+
+        def is_young(p):
+            if not p.birth_date:
+                return False
+            today = date.today()
+            age = today.year - p.birth_date.year - (
+                (today.month, today.day) < (p.birth_date.month, p.birth_date.day)
+            )
+            return age < 18
+
+        if match_set.set_type == 'single':
+            if is_young(player):
+                return 'JEUNES'
+            return 'FEMININES' if is_female(player) else 'MASCULINS'
+
+        pair = (
+            match_set.home_players.all()
+            if player in match_set.home_players.all()
+            else match_set.away_players.all()
+        )
+        genders = [is_female(p) for p in pair]
+        ages = [is_young(p) for p in pair]
+
+        if not any(genders) and not any(ages):
+            return 'DOUBLES MASCULINS'
+        if any(genders) and not any(ages):
+            return 'DOUBLES MASCULIN-FEMININ'
+        if not any(genders) and any(ages):
+            return 'DOUBLES MASCULIN-JEUNE'
+        if any(genders) and any(ages):
+            return 'DOUBLES FEMININ-JEUNE'
+        return None
 
 class ScheduleViewSet(viewsets.ModelViewSet):
     serializer_class = ScheduleSerializer
