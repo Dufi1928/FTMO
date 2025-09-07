@@ -1,20 +1,30 @@
-from django.shortcuts import render
-from rest_framework import viewsets
-from .models import Match, MatchSet
-from .serializers import MatchSerializer, MatchSetSerializer
+from rest_framework import viewsets, status, filters
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Q
 from rest_framework.decorators import action
-from rest_framework import status
-from rest_framework import filters
+from django.db.models import Sum, F, Q, IntegerField, Value, Case, When
+from django.db.models.functions import Coalesce
 
+from .models import Match, MatchSet
+from .serializers import MatchSerializer, MatchSetSerializer
 
 class MatchViewSet(viewsets.ModelViewSet):
-    queryset = Match.objects.all()
     serializer_class = MatchSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    def get_queryset(self):
+        return (
+            Match.objects
+            .annotate(
+                ann_total_points_home=Coalesce(Sum('match_sets__home_points'), 0),
+                ann_total_points_away=Coalesce(Sum('match_sets__away_points'), 0),
+            )
+            .prefetch_related(
+                'match_sets',
+                'match_sets__home_players',
+                'match_sets__away_players',
+            )
+        )
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def my_team(self, request):
@@ -28,12 +38,12 @@ class MatchViewSet(viewsets.ModelViewSet):
 
         logs.append(f"✅ Équipe trouvée : {team.club_name} (ID: {team.id})")
 
-        # Matchs où l'équipe est soit à domicile, soit à l'extérieur
-        matches = Match.objects.filter(Q(home_team=team) | Q(away_team=team)).order_by('-scheduled_datetime')
+        matches = self.get_queryset().filter(Q(home_team=team) | Q(away_team=team)).order_by('-scheduled_datetime')
         logs.append(f"📦 {matches.count()} match(s) récupéré(s).")
 
         serializer = self.get_serializer(matches, many=True)
         return Response({'matches': serializer.data, 'logs': logs})
+
 
 
 class MatchSetViewSet(viewsets.ModelViewSet):
@@ -52,31 +62,45 @@ class MatchSetViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def bulk_create(self, request):
+        """
+        Upsert par (match, match_identifier).
+        Accepte home_players / away_players (listes d'IDs) ou home_player / away_player (IDs simples).
+        """
         sets_data = request.data
-
         if not isinstance(sets_data, list):
             return Response({'detail': 'Une liste est attendue.'}, status=status.HTTP_400_BAD_REQUEST)
 
         updated_or_created = []
 
-        for set_data in sets_data:
-            match = set_data.get('match')
-            match_identifier = set_data.get('match_identifier')
+        for data in sets_data:
+            match_id = data.get('match')
+            match_identifier = data.get('match_identifier')
+            if not match_id or not match_identifier:
+                continue
 
-            if not match or not match_identifier:
-                continue  # Ignore les sets incomplets
-
-            instance, created = MatchSet.objects.update_or_create(
-                match_id=match,
+            instance, _ = MatchSet.objects.update_or_create(
+                match_id=match_id,
                 match_identifier=match_identifier,
                 defaults={
-                    'set_type': set_data.get('set_type', 'simple'),
-                    'home_player_id': set_data.get('home_player'),
-                    'away_player_id': set_data.get('away_player'),
-                    'home_points': set_data.get('home_points', 0),
-                    'away_points': set_data.get('away_points', 0),
+                    'set_type': data.get('set_type', 'single'),
+                    'home_points': data.get('home_points', 0),
+                    'away_points': data.get('away_points', 0),
                 }
             )
+
+            # M2M: accepte soit listes, soit single id
+            hp = data.get('home_players')
+            ap = data.get('away_players')
+            if hp is None and data.get('home_player') is not None:
+                hp = [data['home_player']]
+            if ap is None and data.get('away_player') is not None:
+                ap = [data['away_player']]
+
+            if hp is not None:
+                instance.home_players.set(hp)
+            if ap is not None:
+                instance.away_players.set(ap)
+
             updated_or_created.append(instance)
 
         serializer = self.get_serializer(updated_or_created, many=True)

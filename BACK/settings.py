@@ -151,11 +151,19 @@ STATIC_URL = 'static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 CSRF_TRUSTED_ORIGINS = [
-    "https://ftmo.bob-digital.com"
+    "http://localhost:5173",
+    "https://ftmo.bob-digital.com",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",      # ← ajoute‑le si ton Vite tourne parfois sur 127.0.0.1
+    "https://ftmo.bob-digital.com",
+]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = ['*']
 CORS_ALLOW_METHODS = ['*']
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024      # 16 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024
