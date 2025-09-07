@@ -8,7 +8,7 @@ from django.contrib import admin
 
 from accounts.views import RegisterView, EmailTokenObtainPairView
 from teams.views import TeamViewSet, PlayerViewSet, ScheduleViewSet, AudienceCategoryViewSet
-from matches.views import MatchViewSet, MatchSetViewSet
+from matches.views import MatchViewSet, MatchSetViewSet, StatsView
 
 # ==== ROUTER ====
 router = DefaultRouter()
@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/token/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/', include(router.urls)),
+    path('api/stats/<str:category>/', StatsView.as_view(), name='stats-by-category'),
 
     path('admin/', admin.site.urls),
 
