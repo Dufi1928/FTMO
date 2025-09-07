@@ -5,7 +5,7 @@ from django.db.models.functions import Coalesce
 from rest_framework import serializers
 
 from .models import Team, Player, Schedule, AudienceCategory
-from matches.models import Match
+from matches.models import Match, MatchSet
 
 
 # ---- Audience categories ----
@@ -135,31 +135,35 @@ class TeamSerializer(serializers.ModelSerializer):
         return qs.filter(score_home=F('score_away')).count()
 
     def get_total_points_scored(self, obj: Team) -> int:
-        """
-        Somme des sets gagnés par l'équipe (tous matchs joués).
-        """
-        qs = self._played_qs(obj)
+        """Somme des points marqués par l'équipe (tous matchs joués)."""
+        qs = (
+            MatchSet.objects
+            .filter(Q(match__home_team=obj) | Q(match__away_team=obj))
+            .exclude(match__status='scheduled')
+        )
         agg = qs.aggregate(
-            home_scored=Coalesce(Sum(
-                Case(When(home_team=obj, then=F('score_home')), default=Value(0), output_field=IntegerField())
-            ), 0),
-            away_scored=Coalesce(Sum(
-                Case(When(away_team=obj, then=F('score_away')), default=Value(0), output_field=IntegerField())
-            ), 0),
+            home_scored=Coalesce(
+                Sum('home_points', filter=Q(match__home_team=obj)), 0
+            ),
+            away_scored=Coalesce(
+                Sum('away_points', filter=Q(match__away_team=obj)), 0
+            ),
         )
         return int(agg['home_scored'] + agg['away_scored'])
 
     def get_total_points_conceded(self, obj: Team) -> int:
-        """
-        Somme des sets perdus par l'équipe (tous matchs joués).
-        """
-        qs = self._played_qs(obj)
+        """Somme des points encaissés par l'équipe (tous matchs joués)."""
+        qs = (
+            MatchSet.objects
+            .filter(Q(match__home_team=obj) | Q(match__away_team=obj))
+            .exclude(match__status='scheduled')
+        )
         agg = qs.aggregate(
-            home_conceded=Coalesce(Sum(
-                Case(When(home_team=obj, then=F('score_away')), default=Value(0), output_field=IntegerField())
-            ), 0),
-            away_conceded=Coalesce(Sum(
-                Case(When(away_team=obj, then=F('score_home')), default=Value(0), output_field=IntegerField())
-            ), 0),
+            home_conceded=Coalesce(
+                Sum('away_points', filter=Q(match__home_team=obj)), 0
+            ),
+            away_conceded=Coalesce(
+                Sum('home_points', filter=Q(match__away_team=obj)), 0
+            ),
         )
         return int(agg['home_conceded'] + agg['away_conceded'])
