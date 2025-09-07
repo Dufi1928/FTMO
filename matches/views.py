@@ -2,11 +2,15 @@ from rest_framework import viewsets, status, filters
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.views import APIView
 from django.db.models import Sum, F, Q, IntegerField, Value, Case, When
 from django.db.models.functions import Coalesce
+import re
+from typing import Optional
 
 from .models import Match, MatchSet
 from .serializers import MatchSerializer, MatchSetSerializer
+from teams.models import Player
 
 class MatchViewSet(viewsets.ModelViewSet):
     serializer_class = MatchSerializer
@@ -105,3 +109,71 @@ class MatchSetViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(updated_or_created, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class StatsView(APIView):
+    """Retourne les points marqués et concédés par joueur pour une catégorie."""
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    VALID_CATEGORIES = {
+        "feminines",
+        "masculins",
+        "doubles-masculins",
+        "doubles-masculin-feminin",
+        "jeunes",
+        "doubles-masculin-jeune",
+        "doubles-feminin-jeune",
+    }
+
+    def _identify_category(self, match_identifier: str) -> Optional[str]:
+        letters = re.findall(r"[A-Z]", match_identifier or "")
+        if len(letters) == 2:
+            if letters[0] == letters[1] == "F":
+                return "feminines"
+            if letters[0] == letters[1] == "M":
+                return "masculins"
+            if letters[0] == letters[1] == "J":
+                return "jeunes"
+        elif len(letters) == 3 and letters[0] == "D":
+            combo = set(letters[1:])
+            if combo == {"M"}:
+                return "doubles-masculins"
+            if combo == {"M", "F"}:
+                return "doubles-masculin-feminin"
+            if combo == {"M", "J"}:
+                return "doubles-masculin-jeune"
+            if combo == {"F", "J"}:
+                return "doubles-feminin-jeune"
+        return None
+
+    def get(self, request, category: str):
+        category = category.replace("_", "-").lower()
+        if category not in self.VALID_CATEGORIES:
+            return Response({"detail": "Catégorie inconnue"}, status=404)
+
+        stats = {}
+        match_sets = MatchSet.objects.prefetch_related("home_players", "away_players").all()
+        for ms in match_sets:
+            if self._identify_category(ms.match_identifier) != category:
+                continue
+            for player in ms.home_players.all():
+                data = stats.setdefault(player.id, {"player": player, "points_scored": 0, "points_conceded": 0})
+                data["points_scored"] += ms.home_points
+                data["points_conceded"] += ms.away_points
+            for player in ms.away_players.all():
+                data = stats.setdefault(player.id, {"player": player, "points_scored": 0, "points_conceded": 0})
+                data["points_scored"] += ms.away_points
+                data["points_conceded"] += ms.home_points
+
+        results = [
+            {
+                "player_id": pid,
+                "first_name": data["player"].first_name,
+                "last_name": data["player"].last_name,
+                "points_scored": data["points_scored"],
+                "points_conceded": data["points_conceded"],
+            }
+            for pid, data in stats.items()
+        ]
+
+        return Response({"category": category, "results": results})
