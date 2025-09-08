@@ -17,12 +17,34 @@ class AudienceCategorySerializer(serializers.ModelSerializer):
 
 # ---- Players ----
 class PlayerSerializer(serializers.ModelSerializer):
+    points_won = serializers.SerializerMethodField()
+    points_lost = serializers.SerializerMethodField()
+
     class Meta:
         model = Player
         fields = [
             'id', 'team', 'first_name', 'last_name',
-            'civility', 'email', 'birth_date', 'profile_image'
+            'civility', 'email', 'birth_date', 'profile_image',
+            'points_won', 'points_lost'
         ]
+
+    def get_points_won(self, obj: Player) -> int:
+        """Somme des points marqués par le joueur."""
+        qs = MatchSet.objects.filter(Q(home_players=obj) | Q(away_players=obj))
+        agg = qs.aggregate(
+            home_scored=Coalesce(Sum('home_points', filter=Q(home_players=obj)), 0),
+            away_scored=Coalesce(Sum('away_points', filter=Q(away_players=obj)), 0),
+        )
+        return int(agg['home_scored'] + agg['away_scored'])
+
+    def get_points_lost(self, obj: Player) -> int:
+        """Somme des points encaissés par le joueur."""
+        qs = MatchSet.objects.filter(Q(home_players=obj) | Q(away_players=obj))
+        agg = qs.aggregate(
+            home_conceded=Coalesce(Sum('away_points', filter=Q(home_players=obj)), 0),
+            away_conceded=Coalesce(Sum('home_points', filter=Q(away_players=obj)), 0),
+        )
+        return int(agg['home_conceded'] + agg['away_conceded'])
 
 
 # ---- Schedules (REMPLACE audience_type par categories/category_ids) ----
